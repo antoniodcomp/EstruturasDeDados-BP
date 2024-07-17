@@ -1,8 +1,13 @@
 #include <iostream>
 #include <memory>
 #include <string>
+#include <fstream>
+
 
 using namespace std;
+
+//ofstream arquivoS("teste3.txt");
+
 
 template <typename T>
 class Node{
@@ -25,7 +30,7 @@ class RedeSocial{
 
     bool isEmpty(){return head == nullptr;}
 
-    void insertion(const T& d){
+    bool add(const T& d){
         shared_ptr<Node<T>> newNode = make_shared<Node<T>>(d);
         if(isEmpty()){
             head = newNode;
@@ -34,10 +39,10 @@ class RedeSocial{
             head->prev = head;
             tail->next = tail;
             tail->prev = tail;
+            return true;
         }
         else if(tail->data == d){
-            cout << "ERROR" <<endl;
-            return;
+            return false;
         }
         else{
             newNode->next = tail->next;
@@ -45,44 +50,57 @@ class RedeSocial{
             newNode->prev = tail;
             head->prev = newNode;
             tail = newNode;
+            return true;
         }
     }
 
+
+
+    bool verificaAdd(const T &d){
+        if(tail->data == d){
+            return true;
+        }
+        else return false;
+    }
+
+
+
     void remover(const T& d){
-    // Verificar se a lista est� vazia
-    if(head == nullptr){
+
+    if(isEmpty()){
         cout << "Lista Circular esta vazia" << endl;
-        return; // N�o h� nada para remover
+        return;
     }
 
     shared_ptr<Node<T>> atual = head;
     shared_ptr<Node<T>> temp = nullptr;
     shared_ptr<Node<T>> temp2 = nullptr;
 
-    // Encontrar o elemento ou chegar ao final da lista
+
     while(atual->data != d && atual->next != head){
         atual = atual->next;
     }
 
-    // Verificar se o elemento foi encontrado
+
     if(atual->data == d){
-        // Remover o elemento
+
         temp = atual->next;
         temp2 = atual->prev;
         temp->prev = temp2;
         temp2->next = temp;
 
-        // Atualizar o ponteiro head se o elemento removido era o primeiro
+
         if(atual == head){
-            head = temp; // Atualiza o head para o pr�ximo elemento
+            head = temp;
         }
+
     } else {
-        cout << "Elemento nao encontrado" << endl;
+        return;
     }
 }
 
  void printList(){
-    if(head == nullptr){
+    if(isEmpty()){
         cout << "Lista Circular esta vazia" << endl;
     } else {
         shared_ptr<Node<T>> ptr = head;
@@ -117,7 +135,7 @@ class RedeSocial{
         cout << temp1->data << "<-" << p->data << "->" << temp2->data <<endl;
     }
     else{
-        cout << "<?" << d << "?>";
+        cout << "?<-" << d << "->?"<<endl;
     }
  }
 
@@ -126,7 +144,47 @@ class RedeSocial{
 int main(){
 
     RedeSocial<string> L1;
+    string comando, nome;
+    ifstream arquivoE;
+    ofstream arquivoS;
+    arquivoE.open("redesocialinput.txt");
+    arquivoS.open("saidasocial.txt");
 
+    if(arquivoE.is_open()){
+        while(true){
+          arquivoE >> comando;
+          if(!arquivoE) break;
+
+          getline(arquivoE >> std::ws, nome);
+          bool sucesso;
+
+          if (comando == "ADD") {
+            sucesso = L1.add(nome);
+
+            if(sucesso) {
+                arquivoS << "[ OK ] " << "ADD " << nome << endl;
+            } else {
+                arquivoS << "[ ERROR ] ";
+            }
+
+          }else if (comando == "REMOVE") {
+            L1.remover(nome);
+
+          }else if (comando == "SHOW") {
+            L1.show(nome);
+          }
+        }
+
+
+        arquivoE.close();
+        arquivoS.close();
+    }
+    else{
+        cout << "não foi possível abrir o arquivo" <<endl;
+    }
+
+    //L1.printList();
+    /*
     L1.insertion("jose da silva");
     L1.insertion("jose da silva");
     L1.insertion("joao dos santos");
@@ -136,6 +194,10 @@ int main(){
     L1.insertion("alan turing");
     L1.show("maria da penha");
     L1.show("bruno prado");
+    */
+
+
+
 
 
 
