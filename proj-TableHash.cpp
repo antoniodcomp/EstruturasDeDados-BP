@@ -1,60 +1,53 @@
 #include <iostream>
 #include <memory>
+#include <limits>
+#include <vector>
+
+
 using namespace std;
 
-//const int qtdServ = 10;
-//int  capMax;
+template <typename T>
+class no{
+public:
 
-/*define INCRE(h) (h = h == qtdServ - 1? 0: h+1)
-typedef struct Requisicao{
+    T *data;
+    int tam;
+    shared_ptr<no<T>> next;
 
-    int numReq;
-    string palavras[50];
+    no(T *d, int &tam): data(d), tam(tam), next(nullptr){};
+};
 
-}Requisicao;
-*/
-
-
-int checksum(string *str, int tam){
-    int h;
+template <typename T>
+int checksum(T *str, int tam){
+    int h = 0;
+    int x;
     //int numStrings = sizeof(str) / sizeof(str[0]);
     for(int i = 0; i < tam; i++){
         for(char c: str[i]){
-            h ^= c;
+            x ^= c;
         }
+        h += x;
     }
-    return h;
+    return h % 256;
 }
 
-
-
-
-class no{
-
-public:
-    string *data;
-    shared_ptr<no> next;
-
-    no(string *d): data(d), next(nullptr){};
-};
-
-
+template <typename T>
 class listaSin{
 public:
 
-    shared_ptr<no> head;
-    shared_ptr<no> tail;
-    int maxReq;
-    int sizeT;
+    shared_ptr<no<T>> head;
+    shared_ptr<no<T>> tail;
+    int atualReq; // CADA SERVIDOR TEM UMA CAPACIDADE MÁX DE REQUI
+    //int sizeT;
 
-    listaSin():maxReq(0), sizeT(0), head(nullptr), tail(nullptr){};
+    listaSin():atualReq(0), head(nullptr), tail(nullptr){};
 
 
     bool isEmpty(){return head == nullptr;}
 
-    void inserirSin(string nome[]){
+    void inserirSin(T *nome, int sizeT){
 
-        shared_ptr<no> newNode = make_shared<no>(nome);
+        shared_ptr<no<T>> newNode = make_shared<no<T>>(nome, sizeT);
         if(isEmpty()){
             newNode->next = head;
             head = newNode;
@@ -67,86 +60,97 @@ public:
     }
 
     void printaLista(){
-        //shared_ptr<no> p = head;
+        shared_ptr<no<T>> p = head;
 
-        while(head != nullptr){
-           for(int i = 0; sizeT; i++){
-            cout << head->data[i] << ", ";
+        while(p != nullptr){
+           for(int i = 0; i < p->tam; i++){
+            cout << p->data[i] << " ";
            }
-           head = head->next;
+           p = p->next;
         }
-        cout << "null";
+        //cout << "null";
         cout << endl;
     }
 };
+int qtdServidores;
 
-
-class Servidor{
+template <typename T>
+class Servidores{
 
 public:
-    int qtdServ;
-    int capMax;
-    listaSin table[100];
+    int qtdServidores;
+    int capMaxReq; // capacidade max que cada servidor vai ter
+    listaSin<string> *table = nullptr;
+    Servidores(int &q, int &c):qtdServidores(q), capMaxReq(c){
+            table = new listaSin<string>[qtdServidores];
+    };
 
-    Servidor(int &q, int &c):qtdServ(q), capMax(c){};
-
-    int hash1(string *str, int tamVetor){
+    int hash1(T *str, int tamVetor){
         int primo = 7919;
-        return (primo * (checksum(str, tamVetor))) % qtdServ;
+        return (primo * (checksum(str, tamVetor))) % qtdServidores;
     }
 
 
-    int hash2(string *str, int tamVetor){
+    int hash2(T *str, int tamVetor){
         int primo1, primo2;
         primo1 = 104729;
         primo2 = 123;
 
-        return (primo1 * (checksum(str, tamVetor)) + primo2) % qtdServ;
+        return (primo1 * (checksum(str, tamVetor)) + primo2) % qtdServidores;
     }
 
-
-    int doubleH(string *str, int ite, int tamVetor){
+    int doubleH(T *str, int ite, int tamVetor){
         int h;
 
         //if(h = h == qtdServ -1) return 0;
-        h = (hash1(str, tamVetor) + ite*hash2(str, tamVetor)) % qtdServ;
+        h = (hash1(str, tamVetor) + ite*hash2(str, tamVetor)) % qtdServidores;
         return h;
     }
 
-    void insertReq(string *str, int tamVetor){
+    void insertReq(T *str, int tamVetor){
         int index = hash1(str, tamVetor);
 
-        if(table[index].isEmpty() || table[index].maxReq < capMax){
-                table[index].inserirSin(str);
-                table[index].maxReq +=1;
-                table[index].sizeT = tamVetor;
+        if(table[index].atualReq < capMaxReq){
+            if(table[index].atualReq < capMaxReq){
+                table[index].inserirSin(str, tamVetor);
+                table[index].atualReq ++;
+                //table[index].sizeT += tamVetor;
+            }
         }
-
         else{
              int cont = 0;
-             while(cont < qtdServ-1){
+             while(cont < qtdServidores-1){
                 int n = doubleH(str, cont, tamVetor);
 
-                 if(table[index].head == nullptr || table[index].maxReq < capMax){
-                    if(table[index].maxReq < capMax){
-                        table[n].inserirSin(str);
-                        table[index].maxReq +=1;
-                        table[index].sizeT = tamVetor;
+                 if(table[n].head == nullptr){
+                    if(table[n].atualReq < capMaxReq){
+                        table[n].inserirSin(str, tamVetor);
+                        table[n].atualReq +=1;
+                        //table[n].sizeT += tamVetor;
                         break;
                      }
                  }
                 cont++;
             }
         }
-
     }
 
-    void printaServ(){
-        for(int i = 0; i < capMax; i++){
+    void printaServ(){ // PROBLEMA ESTÁ AQUI
+        for(int i = 0; i < qtdServidores; i++){
             cout << "S" << i << ": ";
             table[i].printaLista();
         }
+    }
 
+    void printaInd(T *str, int tamVetor){
+        int index = hash1(str, tamVetor);
+        cout << index <<endl;
+        table[index].printaLista();
+    }
+
+    ~Servidores() {
+
+        delete[] table;
     }
 
 
@@ -159,25 +163,46 @@ int main(){
     cin >> serv;
     cin >> maxR;
 
-    Servidor s{serv, maxR};
+    Servidores<string> s{serv, maxR};
 
     cout << "Entre com a quantd de requisições" <<endl;
     cin >> nReq;
     int acc;
 
-    while(nReq--){
+    string **requisicoes =  new string*[nReq];
+   int *n = new int[nReq];
+
+    for(int i = 0; i < nReq; i++){
         cout << "Qtd de req" <<endl;
         cin >> acc;
-        string req[acc];
+        n[i] = acc;
 
-        for(int i = 0; i < acc; i++){
+        requisicoes[i] = new string[acc];
+
+        for(int j = 0; j < acc; j++){
             cout << "Entre com a requisição" <<endl;
-            cin >> req[i];
+            cin >> requisicoes[i][j];
+
         }
-        s.insertReq(req, acc);
+
     }
+
+   for(int i = 0; i < nReq; i++){
+     *(requisicoes+1);
+     cout <<endl;
+     for(int j = 0; j < n[0]; j++){
+     cout << requisicoes[i][j] << "";
+     s.insertReq(requisicoes[i], n[i]);
+     }
+     cout <<endl;
+  }
 
     s.printaServ();
 
+
+
+
+
 return 0;
 }
+
