@@ -1,0 +1,353 @@
+#include <iostream>
+#include <memory>
+#include <fstream>
+#include <sstream>
+#include <vector>
+#include <string>
+
+
+using namespace std;
+int teste[10];
+int doubleok = 0;
+int deb = 0;
+int qtdDoublehash;
+int hashInitial;
+int hashFinal;
+
+template <typename T>
+class no{
+public:
+
+    T data;
+    int tam;
+    shared_ptr<no<T>> next;
+
+    no(const T &d, int &tam): data(d), tam(tam), next(nullptr){};
+};
+
+template <typename T>
+int checksum(const T &str){
+    int x = 0;
+    for(auto &c : str){
+        x ^= c;
+    }
+    return x;
+}
+
+template <typename T>
+class listaSin{
+public:
+
+    shared_ptr<no<T>> head;
+    shared_ptr<no<T>> tail;
+    int atualReq; // CADA SERVIDOR TEM UMA CAPACIDADE MÁX DE REQUI
+    //int sizeT;
+
+    listaSin():head(nullptr), tail(nullptr), atualReq(0){};
+
+
+    bool isEmpty(){return head == nullptr;}
+
+    void inserirSin(const T &nome, int &sizeT){
+
+        shared_ptr<no<T>> newNode = make_shared<no<T>>(nome, sizeT);
+        if(isEmpty()){
+            newNode->next = head;
+            head = newNode;
+            tail = newNode;
+        }
+        else{
+            tail->next = newNode;
+            tail = newNode;
+        }
+    }
+
+    void split(const string& str, char delimiter) {
+         string token;
+         stringstream ss(str);
+    
+        while (getline(ss, token, delimiter)) {
+           cout << token << endl;
+        }
+    }
+
+   T *printaLista(){
+        shared_ptr<no<T>> p = head;
+        string *aux = new string[atualReq];
+        stringstream ss;
+        int top = 0;
+        bool primeiraString = true;
+
+        while(p != nullptr){
+            if(primeiraString == false){
+                ss << ", ";
+            }
+            else{
+                primeiraString = false;
+
+            }/*
+            if(p->tam > 1){
+                for(int i = 0; i < p->tam; i++){
+                    ss << p->data[i] << ", ";
+                }
+            }
+            else{*/
+                ss << p->data;
+            //}
+            aux[top++] = ss.str();
+            ss.str("");
+            p = p->next;
+        }
+        return aux;
+    }
+
+    T* retornaString(){
+        shared_ptr<no<T>> p = head;
+        string *aux = new string[atualReq * 10];
+        int top = 0;
+
+        while(p != nullptr){
+            stringstream ss(p->data);
+            string segment;
+            while(getline(ss, segment, ' ')){
+                aux[top++] = segment;
+            }
+            p = p->next;
+        }
+
+        return aux;
+    }
+    
+
+};
+//int qtdServidores;
+
+int hash1(const string &str){
+        int primo = 7919;
+        return primo * checksum(str) % 3;
+    }
+    int hash2(const string &str){
+        int primo1, primo2;
+        primo1 = 104729;
+        primo2 = 123;
+
+        return primo1 * (checksum(str)) + primo2 % 3;
+    }
+    int doubleH(const string &str, int ite){
+        int h;
+        //if(h = h == qtdServ -1) return 0;
+        h = (hash1(str) + (ite * hash2(str))) % 3;
+        return h;
+    }
+template <typename T>
+class Servidores{
+public:
+    int tamServidor;
+    int capacidade; // capacidade max que cada servidor vai ter
+    listaSin<string> *table = nullptr;
+    Servidores(int &q, int &c):tamServidor(q), capacidade(c){
+        table = new listaSin<string>[tamServidor];
+    };
+
+    int hash1(const T &str){
+        int primo = 7919;
+        return (primo * (checksum(str))) % tamServidor;
+    }
+
+
+    int hash2(const T &str){
+        int primo1, primo2;
+        primo1 = 104729;
+        primo2 = 123;
+
+        return primo1 * (checksum(str)) + primo2 % tamServidor;
+    }
+
+    int doubleH(const T &str, int ite){
+        int h;
+        //if(h = h == qtdServ -1) return 0;
+        h = (hash1(str) + ite * (hash2(str))) % tamServidor;
+        return h;
+    }
+
+    void insertReq(const T &str, int tamVetor){
+        int index = hash1(str);
+        hashInitial = index;
+
+        if(table[index].atualReq < capacidade){
+            table[index].inserirSin(str, tamVetor);
+            table[index].atualReq++;
+            //table[index].sizeT += tamVetor;
+        }
+        else{
+             int cont = 0;
+             while(true){
+                int n = doubleH(str, cont);
+                //if(n < 0 || n > tamServidor) break;
+                //teste[cont] = cont;
+
+                 //deb = table[n];
+                 if(table[n].atualReq < capacidade &&  (n > 0 && n < tamServidor)){
+                        table[n].inserirSin(str, tamVetor);
+                        doubleok = n;
+                        table[n].atualReq++;
+                        qtdDoublehash++;
+                        hashFinal = n;
+                        break;
+                   }
+                cont++;
+              }
+        }
+    }
+
+    void printaServ(ofstream &arquivoS){ 
+        string* aux2 = nullptr;
+        int *arr = new int[qtdDoublehash];
+        int top = 0;
+        for(int i = 0; i < tamServidor; i++){
+          if(doubleok != i){
+                aux2 = table[i].retornaString();
+                arquivoS <<"[S" << i << "] ";
+            for(int j = 0; j < table[i].atualReq * 10 && !aux2[j].empty(); ++j){
+                    //arquivoS << aux2->size();
+                arquivoS << aux2[j];
+            }
+            arquivoS << endl;
+          }
+          else{
+            arr[top++] = i;
+          }
+        }
+
+        for(int i = 0; i < qtdDoublehash; i++){
+            aux2 = table[hashFinal].retornaString();
+            arquivoS << "S" << hashInitial << "->" << "S" << hashFinal << endl;
+            arquivoS << "[S" << arr[i] << "] ";
+            for(size_t j = 0; j < aux2->size(); j++){
+                arquivoS << aux2[j];
+            }
+            
+        }
+    }
+
+
+    void printa(ofstream &arquivoS) { 
+    string* aux2 = nullptr;
+    int *arr = new int[qtdDoublehash];
+    int top = 0;
+    for(int i = 0; i < tamServidor; i++) {
+       if(doubleok != i){
+        aux2 = table[i].printaLista();  
+        for(int j = 0; j < table[i].atualReq; ++j) {
+            arquivoS << endl << "[S" << i << "] ";
+            for(int k = 0; k <= j; k++) {
+                arquivoS << aux2[k];
+            }
+        }
+       }
+       else{
+         arr[top++] = i;
+       }
+    }
+
+    for(int i = 0; i < qtdDoublehash; i++){
+            aux2 = table[hashFinal].retornaString();
+            arquivoS << endl;
+            arquivoS << "S" << hashInitial << "->" << "S" << hashFinal << endl;
+            arquivoS << "[S" << arr[i] << "] ";
+            for(size_t j = 0; j < aux2->size(); j++){
+                arquivoS << aux2[j];
+            }
+            
+        }
+}
+/*
+    void printaInd(T str, int tamVetor){
+        int index = hash1(str, tamVetor);
+        cout << index << endl;
+        table[index].printaLista();
+    }
+*/
+    ~Servidores() {
+        delete[] table;
+    }
+
+};
+
+int main(int argc, char* argv[]){
+    ifstream arquivoE;
+    ofstream arquivoS;
+    arquivoE.open(argv[1]);
+    arquivoS.open(argv[2]);
+
+    if (!arquivoE.is_open() && !arquivoS.is_open()) {
+        cerr << "Não foi possível abrir o arquivo de entrada." << endl;
+        return 1; // Exit with error
+    }
+    
+    int serv, maxR, nReq;
+    arquivoE >> serv >> maxR;
+
+    Servidores<string> s(serv, maxR);
+
+    
+    arquivoE >> nReq;
+    int acc;
+    int acc2;
+    for(int i = 0; i < nReq; i++){
+        arquivoE >> acc;
+        string req;
+        acc2 = acc;
+    
+        for(int j = 0; j < acc; j++){
+           string aux;
+           arquivoE >> aux;
+           req += aux;
+        }
+
+        
+        s.insertReq(req, acc);
+
+
+        arquivoS << req << endl;
+
+        
+
+    }
+
+   //s.printaServ();
+   
+  // s.printaServ(arquivoS);
+   s.printa(arquivoS);
+/*
+    string abc = "hash";
+   int a = checksum(abc);
+   cout << "checksum " << a <<endl;
+    int ite = 1;
+   int cringe = hash1(abc);
+   int cringe2 = hash2(abc);
+   int cringe4 = doubleH(abc, 100);
+   cout << "hash1 " <<cringe <<endl;
+   cout << "hash2 " <<cringe2 <<endl;
+   cout << "doublehash " <<cringe4 <<endl;
+
+    int i = 0;
+*/
+
+ 
+
+ string abc = "hash";
+
+ int check = hashInitial;
+
+ cout << "check sum é" << check <<endl;
+ cout << "deb" << deb<<endl;
+ 
+   
+    
+
+
+
+
+return 0;
+}
