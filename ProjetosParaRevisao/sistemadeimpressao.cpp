@@ -176,7 +176,16 @@ Impressora *impLivre = impressoras[i];
             impLivre->historico[impLivre->contadorImp++] = documentoEscolhido;
             arquivoS << "[" << impLivre->nome << "]";
             for(int i = impLivre->contadorImp-1; i >= 0 ; --i){
-            arquivoS << " " << impLivre->historico[i].nome << "-" << impLivre->historico[i].folhas <<"p";
+                if (i < impLivre->contadorImp - 1){ 
+                    arquivoS << ",";
+                }
+                if(i >=0 ){
+                     arquivoS << " ";
+                }
+                
+                arquivoS << impLivre->historico[i].nome << "-" << impLivre->historico[i].folhas <<"p";
+                
+                    
             }
             arquivoS << endl;
             impLivre->tempoEspera--;
